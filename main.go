@@ -72,6 +72,13 @@ func DeleteProduct(db *gorm.DB, productID uint) error {
 	return result.Error
 }
 
+// -----==^.^==----- Func => UndoDelete products ------==^.^==------
+
+func UndoDelete(db *gorm.DB, productID uint) error {
+	tx := db.Exec("UPDATE products SET deleted_at = NULL WHERE id = ?", productID)
+	return tx.Error
+}
+
 // -----==^.^==----- Func => List all products ------==^.^==------
 
 func ListProducts(db *gorm.DB) ([]*Product, error) {
@@ -180,6 +187,33 @@ func main() {
 		)
 	})
 
+	// -----==^.^==----- Func => UndoDelete products ------==^.^==------
+	http.HandleFunc("/undo-delete-product", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			fmt.Println("Not possible to restore the deleted product")
+			http.Error(w, "Not possible to restore the deleted product", http.StatusMethodNotAllowed)
+			return
+		}
+
+		productIDStr := r.URL.Query().Get("id")
+		productID, err := strconv.Atoi(productIDStr)
+		if err != nil {
+			http.Error(w, "unable to decode product from request", http.StatusBadRequest)
+			return
+		}
+
+		if err := UndoDelete(db, uint(productID)); err != nil {
+			fmt.Println("Not possible to restore the deleted product")
+			http.Error(w, "Not possible to restore the deleted product", http.StatusInternalServerError)
+			return
+		}
+
+		http.Error(
+			w,
+			"product successfully restored",
+			http.StatusBadRequest,
+		)
+	})
 	// -----==^.^==----- Update a new product------==^.^==------
 	http.HandleFunc("/update-product", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
