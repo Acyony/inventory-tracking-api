@@ -21,8 +21,8 @@ type Product struct {
 	Category    string
 }
 
-// CreateProductRequest => representation of the product from the request.
-type CreateProductRequest struct {
+// CreateUpdateProductRequest => representation of the product from the request.
+type CreateUpdateProductRequest struct {
 	Name        string  `json:"name"`
 	Description string  `json:"description"`
 	Price       float64 `json:"price"`
@@ -72,6 +72,18 @@ func ListProductByCategory(db *gorm.DB, category string) ([]*Product, error) {
 	return products, result.Error
 }
 
+func UpdateProduct(db *gorm.DB, productID uint, name string) error {
+	product := &Product{}
+	res := db.First(&product, productID)
+	if res.Error != nil {
+		return res.Error
+	}
+
+	product.Name = name
+	res = db.Save(product)
+	return res.Error
+}
+
 func main() {
 	// connecting to sqlite database
 	db, err := gorm.Open(sqlite.Open("database_gorm.sqlite3"), &gorm.Config{
@@ -93,7 +105,7 @@ func main() {
 			return
 		}
 
-		productFromRequest := CreateProductRequest{}
+		productFromRequest := CreateUpdateProductRequest{}
 		if err := json.NewDecoder(r.Body).Decode(&productFromRequest); err != nil {
 			fmt.Println("unable to decode product from request")
 			http.Error(w, "unable to decode product from request", http.StatusBadRequest)
@@ -109,6 +121,40 @@ func main() {
 			productFromRequest.Category,
 		); err == nil {
 			_, _ = w.Write([]byte(strconv.Itoa(int(id))))
+			return
+		}
+
+		http.Error(
+			w,
+			"unable to save the product in the database",
+			http.StatusBadRequest,
+		)
+	})
+
+	// Creates a new product
+	http.HandleFunc("/update-product", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			fmt.Println("Not possible to update a product")
+			http.Error(w, "Not possible to update a product", http.StatusMethodNotAllowed)
+			return
+		}
+
+		productIDStr := r.URL.Query().Get("id")
+		productID, err := strconv.Atoi(productIDStr)
+		if err != nil {
+			http.Error(w, "unable to decode product from request", http.StatusBadRequest)
+			return
+		}
+
+		productFromRequest := CreateUpdateProductRequest{}
+		if err := json.NewDecoder(r.Body).Decode(&productFromRequest); err != nil {
+			fmt.Println("unable to decode product from request")
+			http.Error(w, "unable to decode product from request", http.StatusBadRequest)
+			return
+		}
+
+		if err := UpdateProduct(db, uint(productID), productFromRequest.Name); err == nil {
+			_, _ = w.Write([]byte(strconv.Itoa(productID)))
 			return
 		}
 
@@ -157,6 +203,7 @@ func main() {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
+
 		category := r.URL.Query().Get("category")
 
 		productsByCategoryFromDatabase, err := ListProductByCategory(db, category)
@@ -176,6 +223,8 @@ func main() {
 				Category:    pbc.Category,
 			})
 		}
+
+		// Updating a product
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(productsResponse); err != nil {
