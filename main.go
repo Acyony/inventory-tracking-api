@@ -65,6 +65,13 @@ func AddNewProduct(
 	return p.ID, err
 }
 
+// -----==^.^==----- Func => Delete products ------==^.^==------
+
+func DeleteProduct(db *gorm.DB, productID uint) error {
+	result := db.Where("id = ?", productID).Delete(&Product{})
+	return result.Error
+}
+
 // -----==^.^==----- Func => List all products ------==^.^==------
 
 func ListProducts(db *gorm.DB) ([]*Product, error) {
@@ -145,7 +152,35 @@ func main() {
 		)
 	})
 
-	// -----==^.^==----- Creates a new product------==^.^==------
+	// -----==^.^==----- Delete a product ------==^.^==------
+	http.HandleFunc("/delete-product", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			fmt.Println("Not possible to delete the product")
+			http.Error(w, "Not possible to delete the product", http.StatusMethodNotAllowed)
+			return
+		}
+
+		productIDStr := r.URL.Query().Get("id")
+		productID, err := strconv.Atoi(productIDStr)
+		if err != nil {
+			http.Error(w, "unable to decode product from request", http.StatusBadRequest)
+			return
+		}
+
+		if err := DeleteProduct(db, uint(productID)); err != nil {
+			fmt.Println("unable to delete the product from DB")
+			http.Error(w, "unable to delete the product from DB", http.StatusBadRequest)
+			return
+		}
+
+		http.Error(
+			w,
+			"product successfully deleted",
+			http.StatusBadRequest,
+		)
+	})
+
+	// -----==^.^==----- Update a new product------==^.^==------
 	http.HandleFunc("/update-product", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			fmt.Println("Not possible to update a product")
