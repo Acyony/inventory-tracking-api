@@ -11,7 +11,8 @@ import (
 	"strconv"
 )
 
-// Product => representation of the product in the database.
+// -----==^.^==----- Product => representation of the product in the database ------==^.^==------
+
 type Product struct {
 	gorm.Model
 	Name        string
@@ -21,7 +22,8 @@ type Product struct {
 	Category    string
 }
 
-// CreateUpdateProductRequest => representation of the product from the request.
+// -----==^.^==----- CreateUpdateProductRequest => representation of the product from the request ------==^.^==------
+
 type CreateUpdateProductRequest struct {
 	Name        string  `json:"name"`
 	Description string  `json:"description"`
@@ -30,7 +32,8 @@ type CreateUpdateProductRequest struct {
 	Category    string  `json:"category"`
 }
 
-// ListProductResponse => representation of the product in the response.
+// -----==^.^==----- ListProductResponse => representation of the product in the response ------==^.^==------
+
 type ListProductResponse struct {
 	ID          uint    `json:"id"`
 	Name        string  `json:"name"`
@@ -39,6 +42,8 @@ type ListProductResponse struct {
 	Quantity    uint    `json:"uint"`
 	Category    string  `json:"category"`
 }
+
+// -----==^.^==----- Func => Creates a new product ------==^.^==------
 
 func AddNewProduct(
 	db *gorm.DB, name string, description string, price float64, quantity uint, category string) (uint, error) {
@@ -60,11 +65,15 @@ func AddNewProduct(
 	return p.ID, err
 }
 
+// -----==^.^==----- Func => List all products ------==^.^==------
+
 func ListProducts(db *gorm.DB) ([]*Product, error) {
 	products := []*Product{}
 	result := db.Find(&products)
 	return products, result.Error
 }
+
+// -----==^.^==----- Func => List a product by category ------==^.^==------
 
 func ListProductByCategory(db *gorm.DB, category string) ([]*Product, error) {
 	products := []*Product{}
@@ -72,7 +81,9 @@ func ListProductByCategory(db *gorm.DB, category string) ([]*Product, error) {
 	return products, result.Error
 }
 
-func UpdateProduct(db *gorm.DB, productID uint, name string) error {
+// -----==^.^==----- Func => Update a product ------==^.^==------
+
+func UpdateProduct(db *gorm.DB, productID uint, name string, description string, price float64, category string) error {
 	product := &Product{}
 	res := db.First(&product, productID)
 	if res.Error != nil {
@@ -80,12 +91,15 @@ func UpdateProduct(db *gorm.DB, productID uint, name string) error {
 	}
 
 	product.Name = name
+	product.Description = description
+	product.Price = price
+	product.Category = category
 	res = db.Save(product)
 	return res.Error
 }
 
 func main() {
-	// connecting to sqlite database
+	// -----==^.^==----- connecting to sqlite database ------==^.^==------
 	db, err := gorm.Open(sqlite.Open("database_gorm.sqlite3"), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
@@ -98,7 +112,7 @@ func main() {
 		panic(fmt.Sprintf("Not able to create a table %s", err.Error()))
 	}
 
-	// Creates a new product
+	// -----==^.^==----- Creates a new product ------==^.^==------
 	http.HandleFunc("/new-product", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			fmt.Println("Not possible to create a product")
@@ -131,7 +145,7 @@ func main() {
 		)
 	})
 
-	// Creates a new product
+	// -----==^.^==----- Creates a new product------==^.^==------
 	http.HandleFunc("/update-product", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			fmt.Println("Not possible to update a product")
@@ -153,7 +167,7 @@ func main() {
 			return
 		}
 
-		if err := UpdateProduct(db, uint(productID), productFromRequest.Name); err == nil {
+		if err := UpdateProduct(db, uint(productID), productFromRequest.Name, productFromRequest.Description, productFromRequest.Price, productFromRequest.Category); err == nil {
 			_, _ = w.Write([]byte(strconv.Itoa(productID)))
 			return
 		}
@@ -165,7 +179,7 @@ func main() {
 		)
 	})
 
-	// List all products
+	// -----==^.^==----- List all products ------==^.^==------
 	http.HandleFunc("/products", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -179,7 +193,6 @@ func main() {
 		}
 
 		productsResponse := []ListProductResponse{}
-
 		for _, p := range productsFromDatabase {
 			productsResponse = append(productsResponse, ListProductResponse{
 				ID:          p.ID,
@@ -197,7 +210,7 @@ func main() {
 		}
 	})
 
-	// Get one product by category
+	// -----==^.^==----- Get one product by category ------==^.^==------
 	http.HandleFunc("/products-by-category", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -223,8 +236,6 @@ func main() {
 				Category:    pbc.Category,
 			})
 		}
-
-		// Updating a product
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(productsResponse); err != nil {
