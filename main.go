@@ -28,7 +28,7 @@ type CreateUpdateProductRequest struct {
 	Name        string  `json:"name"`
 	Description string  `json:"description"`
 	Price       float64 `json:"price"`
-	Quantity    uint    `json:"uint"`
+	Quantity    uint    `json:"quantity"`
 	Category    string  `json:"category"`
 }
 
@@ -87,17 +87,23 @@ func ListProducts(db *gorm.DB) ([]*Product, error) {
 	return products, result.Error
 }
 
-// -----==^.^==----- Func => List a product by category ------==^.^==------
+func GetProduct(db *gorm.DB, productId uint) (*Product, error) {
+	product := &Product{}
+	result := db.Find(&product, "id = ?", productId)
+	return product, result.Error
+}
 
-func ListProductByCategory(db *gorm.DB, category string) ([]*Product, error) {
+// -----==^.^==----- Func => List all deleted products ------==^.^==------
+
+func ListAllDeletedProducts(db *gorm.DB) ([]*Product, error) {
 	products := []*Product{}
-	result := db.Find(&products, "category = ?", category)
+	result := db.Raw("SELECT * FROM products WHERE deleted_at is not null").Scan(&products)
 	return products, result.Error
 }
 
 // -----==^.^==----- Func => Update a product ------==^.^==------
 
-func UpdateProduct(db *gorm.DB, productID uint, name string, description string, price float64, category string) error {
+func UpdateProduct(db *gorm.DB, productID uint, name string, description string, price float64, quantity uint, category string) error {
 	product := &Product{}
 	res := db.First(&product, productID)
 	if res.Error != nil {
@@ -108,6 +114,7 @@ func UpdateProduct(db *gorm.DB, productID uint, name string, description string,
 	product.Description = description
 	product.Price = price
 	product.Category = category
+	product.Quantity = quantity
 	res = db.Save(product)
 	return res.Error
 }
@@ -230,7 +237,7 @@ func main() {
 			return
 		}
 
-		if err := UpdateProduct(db, uint(productID), productFromRequest.Name, productFromRequest.Description, productFromRequest.Price, productFromRequest.Category); err == nil {
+		if err := UpdateProduct(db, uint(productID), productFromRequest.Name, productFromRequest.Description, productFromRequest.Price, productFromRequest.Quantity, productFromRequest.Category); err == nil {
 			_, _ = w.Write([]byte(strconv.Itoa(productID)))
 			return
 		}
@@ -273,23 +280,55 @@ func main() {
 		}
 	})
 
-	// -----==^.^==----- Get one product by category ------==^.^==------
-	http.HandleFunc("/products-by-category", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/product", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 
-		category := r.URL.Query().Get("category")
-
-		productsByCategoryFromDatabase, err := ListProductByCategory(db, category)
+		productIDStr := r.URL.Query().Get("id")
+		productID, err := strconv.Atoi(productIDStr)
 		if err != nil {
-			http.Error(w, "unable to list all products", http.StatusInternalServerError)
+			http.Error(w, "unable to decode product from request", http.StatusBadRequest)
+			return
+		}
+
+		productFromDatabase, err := GetProduct(db, uint(productID))
+		if err != nil {
+			http.Error(w, "unable to get the product", http.StatusInternalServerError)
+			return
+		}
+
+		productResponse := ListProductResponse{
+			ID:          productFromDatabase.ID,
+			Name:        productFromDatabase.Name,
+			Description: productFromDatabase.Description,
+			Price:       productFromDatabase.Price,
+			Quantity:    productFromDatabase.Quantity,
+			Category:    productFromDatabase.Category,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(productResponse); err != nil {
+			http.Error(w, "unable to encode product into response", http.StatusInternalServerError)
+		}
+	})
+
+	// -----==^.^==----- Get deleted products ------==^.^==------
+	http.HandleFunc("/deleted-products", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		deletedProductsFromDatabase, err := ListAllDeletedProducts(db)
+		if err != nil {
+			http.Error(w, "unable to list all deleted products", http.StatusInternalServerError)
 			return
 		}
 
 		productsResponse := []ListProductResponse{}
-		for _, pbc := range productsByCategoryFromDatabase {
+		for _, pbc := range deletedProductsFromDatabase {
 			productsResponse = append(productsResponse, ListProductResponse{
 				ID:          pbc.ID,
 				Name:        pbc.Name,

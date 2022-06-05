@@ -31,44 +31,51 @@
             <tbody id="products-table"></tbody>
         </table>
         <div class="container mt-4">
-            <a href="#">View deleted products</a>
+            <a href="./deletedProductsTmpl.html">View deleted products</a>
         </div>
     </div>
     <div class="container">
-        <form method="POST" action="/new-product" enctype="multipart/form-data">
+        <form id="create-product-form">
+            <input type="hidden" name="id" value="" id="create-product-form-id">
 
             <div class="input-group input-group-sm mb-3">
-                <span class="input-group-text" id="input1">Name</span>
-                <input type="text" class="form-control" name="Name" aria-describedby="inputGroup-sizing-sm">
+                <span class="input-group-text">Name</span>
+                <input type="text" class="form-control" id="input-name" name="Name"
+                       aria-describedby="inputGroup-sizing-sm">
             </div>
 
             <div class="input-group input-group-sm mb-3">
-                <span class="input-group-text" id="input2">Description</span>
-                <input type="text" class="form-control" name="Description" aria-describedby="inputGroup-sizing-sm">
+                <span class="input-group-text">Description</span>
+                <input type="text" class="form-control" id="input-description" name="Description"
+                       aria-describedby="inputGroup-sizing-sm">
             </div>
 
             <div class="input-group input-group-sm mb-3">
-                <span class="input-group-text" id="input3">Price</span>
-                <input type="number" class="form-control" name="Price" aria-describedby="inputGroup-sizing-sm">
+                <span class="input-group-text">Price</span>
+                <input type="number" class="form-control" id="input-price" name="Price"
+                       aria-describedby="inputGroup-sizing-sm">
             </div>
 
             <div class="input-group input-group-sm mb-3">
-                <span class="input-group-text" id="input4">Category</span>
-                <input type="text" id="Category" class="form-control"
+                <span class="input-group-text">Category</span>
+                <input type="text" id="input-category" class="form-control"
                        aria-describedby="passwordHelpInline"
                        name="Category">
             </div>
             <div class="input-group input-group-sm mb-3">
-                <span class="input-group-text" id="input5">Quantity</span>
-                <input type="text" id="Quantity" class="form-control"
+                <span class="input-group-text">Quantity</span>
+                <input type="text" id="input-quantity" class="form-control"
                        aria-describedby="passwordHelpInline"
                        name="Quantity">
             </div>
 
-            <div>
-                <input type="submit" value="Add product" class="btn btn-outline-secondary">
+            <div class="mb-4">
+                <input type="submit"
+                       value="Add product"
+                       class="btn btn-outline-secondary"
+                       id="create-product-button">
+                <button id="reset-form" style="display: none;">Reset</button>
             </div>
-
 
         </form>
     </div>
@@ -76,6 +83,53 @@
 </section>
 
 <script>
+    document.querySelector("#reset-form").addEventListener("click", async (e) => {
+        e.preventDefault();
+        document.querySelector("#create-product-form-id").value = "";
+        document.querySelector("#create-product-button").value = "Create product";
+        document.querySelector("#create-product-form").reset();
+        document.querySelector("#reset-form").style.display="none";
+    });
+
+    document.querySelector("#create-product-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const id = document.querySelector("#create-product-form-id");
+        const name = document.querySelector("#input-name");
+        const category = document.querySelector("#input-category");
+        const description = document.querySelector("#input-description");
+        const price = document.querySelector("#input-price");
+        const quantity = document.querySelector("#input-quantity");
+        const clearForm = document.querySelector("#create-product-form");
+
+        if (id.value !== "") {
+            await fetch(`/update-product?id=${id.value}`, {
+                method: "POST",
+                body: JSON.stringify(
+                    {
+                        "name": name.value,
+                        "description": description.value,
+                        "price": parseInt(price.value),
+                        "quantity": parseInt(quantity.value),
+                        "category": category.value
+                    })
+            })
+        } else {
+            await fetch("/new-product", {
+                method: "POST",
+                body: JSON.stringify(
+                    {
+                        "name": name.value,
+                        "description": description.value,
+                        "price": parseInt(price.value),
+                        "quantity": parseInt(quantity.value),
+                        "category": category.value
+                    })
+            })
+        }
+
+        await fetchProducts();
+        clearForm.reset();
+    })
 
     async function fetchProducts() {
         let tableBody = document.querySelector("#products-table");
@@ -95,10 +149,15 @@
                 <td>
                     <button class="delete-button" data-product-id="${product.id}">Delete</button>
                 </td>
+
+                <td>
+                    <button class="update-prod-button" data-product-id="${product.id}">Edit</button>
+                </td>
             </tr>`;
         });
 
         setupDeleteButtons();
+        setupUpdateButtons();
     }
 
     function setupDeleteButtons() {
@@ -110,6 +169,33 @@
 
                 await fetchProducts();
             });
+        })
+    }
+
+    function setupUpdateButtons() {
+        document.querySelectorAll(".update-prod-button").forEach((e) => {
+            e.addEventListener("click", async (evt) => {
+                document.querySelector("#create-product-button").value = "Update product";
+                document.querySelector("#create-product-form-id").value = evt.target.dataset.productId;
+                document.querySelector("#reset-form").style.display="block";
+
+                const resp = await fetch(`/product?id=${evt.target.dataset.productId}`);
+
+                const product = await resp.json();
+
+                const name = document.querySelector("#input-name");
+                const category = document.querySelector("#input-category");
+                const description = document.querySelector("#input-description");
+                const price = document.querySelector("#input-price");
+                const quantity = document.querySelector("#input-quantity");
+
+                name.value = product.name;
+                category.value = product.category;
+                description.value = product.description;
+                price.value = product.price;
+                quantity.value = product.quantity;
+
+            })
         })
     }
 
