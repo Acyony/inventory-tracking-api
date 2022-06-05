@@ -93,11 +93,11 @@ func GetProduct(db *gorm.DB, productId uint) (*Product, error) {
 	return product, result.Error
 }
 
-// -----==^.^==----- Func => List a product by category ------==^.^==------
+// -----==^.^==----- Func => List all deleted products ------==^.^==------
 
-func ListProductByCategory(db *gorm.DB, category string) ([]*Product, error) {
+func ListAllDeletedProducts(db *gorm.DB) ([]*Product, error) {
 	products := []*Product{}
-	result := db.Find(&products, "category = ?", category)
+	result := db.Raw("SELECT * FROM products WHERE deleted_at is not null").Scan(&products)
 	return products, result.Error
 }
 
@@ -314,23 +314,21 @@ func main() {
 		}
 	})
 
-	// -----==^.^==----- Get one product by category ------==^.^==------
-	http.HandleFunc("/products-by-category", func(w http.ResponseWriter, r *http.Request) {
+	// -----==^.^==----- Get deleted products ------==^.^==------
+	http.HandleFunc("/deleted-products", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 
-		category := r.URL.Query().Get("category")
-
-		productsByCategoryFromDatabase, err := ListProductByCategory(db, category)
+		deletedProductsFromDatabase, err := ListAllDeletedProducts(db)
 		if err != nil {
-			http.Error(w, "unable to list all products", http.StatusInternalServerError)
+			http.Error(w, "unable to list all deleted products", http.StatusInternalServerError)
 			return
 		}
 
 		productsResponse := []ListProductResponse{}
-		for _, pbc := range productsByCategoryFromDatabase {
+		for _, pbc := range deletedProductsFromDatabase {
 			productsResponse = append(productsResponse, ListProductResponse{
 				ID:          pbc.ID,
 				Name:        pbc.Name,

@@ -6,6 +6,9 @@
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Inventory API</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link rel="stylesheet" href="/assets/CSS/style.css">
 </head>
 <body>
 <div class="container mt-4 mb-4">
@@ -35,7 +38,34 @@
 
 <script>
 
+    async function fetchDeletedProducts() {
+        let tableBody = document.querySelector("#products-table");
+        const response = await fetch("/deleted-products");
+        const json = await response.json();
 
+        tableBody.innerHTML = "";
+
+        json.forEach((product) => {
+            tableBody.innerHTML += `
+            <tr>
+                <td>${product.name}</td>
+                <td>${product.description}</td>
+                <td>${product.price}</td>
+                <td>${product.category}</td>
+                <td>${product.quantity}</td>
+                <td>
+                    <button class="delete-button" data-product-id="${product.id}">Restore</button>
+                </td>
+            </tr>`;
+        });
+
+        /*setupDeleteButtons();
+        setupUpdateButtons();*/
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        await fetchDeletedProducts();
+    });
 
 </script>
 </html>
