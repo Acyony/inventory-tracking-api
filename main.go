@@ -39,7 +39,7 @@ type ListProductResponse struct {
 	Name        string  `json:"name"`
 	Description string  `json:"description"`
 	Price       float64 `json:"price"`
-	Quantity    uint    `json:"uint"`
+	Quantity    uint    `json:"quantity"`
 	Category    string  `json:"category"`
 }
 
@@ -179,12 +179,6 @@ func main() {
 			http.Error(w, "unable to delete the product from DB", http.StatusBadRequest)
 			return
 		}
-
-		http.Error(
-			w,
-			"product successfully deleted",
-			http.StatusBadRequest,
-		)
 	})
 
 	// -----==^.^==----- Func => UndoDelete products ------==^.^==------
