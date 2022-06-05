@@ -54,13 +54,23 @@
                 <td>${product.category}</td>
                 <td>${product.quantity}</td>
                 <td>
-                    <button class="delete-button" data-product-id="${product.id}">Restore</button>
+                    <button class="restore-button" data-product-id="${product.id}">Restore</button>
                 </td>
             </tr>`;
         });
+        await restoreDeletedProduct();
+    }
 
-        /*setupDeleteButtons();
-        setupUpdateButtons();*/
+    function restoreDeletedProduct() {
+        document.querySelectorAll(".restore-button").forEach((e) => {
+            e.addEventListener("click", async (evt) => {
+                await fetch(`/undo-delete-product?id=${evt.target.dataset.productId}`, {
+                    method: "POST"
+                });
+
+                await fetchDeletedProducts();
+            });
+        })
     }
 
     document.addEventListener("DOMContentLoaded", async () => {
