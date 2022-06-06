@@ -10,27 +10,29 @@
           integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
     <link rel="stylesheet" href="/assets/CSS/style.css">
 </head>
-<body>
-<div class="container mt-4 mb-4">
-    <div>
-        <h1>Deleted Products</h1>
-    </div>
+<body class="body-dpp">
+<div class="container mt-4 mb-4 ">
+    <div class="wrap-dpp">
+        <div class="header-dpp">
+            <h1>Deleted Products</h1>
+        </div>
 
-    <table>
-        <thead>
-        <tr>
-            <th>Name</th>
-            <th>Description</th>
-            <th>Price</th>
-            <th>Category</th>
-            <th>Quantity</th>
-            <th>Actions</th>
-        </tr>
-        </thead>
-        <tbody id="products-table"></tbody>
-    </table>
-    <div class="container mt-4">
-        <a href="./index.html">Back to products</a>
+        <table class="table-dpp">
+            <thead>
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Price</th>
+                <th>Category</th>
+                <th>Quantity</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody id="products-table"></tbody>
+        </table>
+        <div class="container mt-4">
+            <a href="./index.html">Back to products</a>
+        </div>
     </div>
 </div>
 
@@ -54,13 +56,23 @@
                 <td>${product.category}</td>
                 <td>${product.quantity}</td>
                 <td>
-                    <button class="delete-button" data-product-id="${product.id}">Restore</button>
+                    <button class="restore-button" data-product-id="${product.id}">Restore</button>
                 </td>
             </tr>`;
         });
+        await restoreDeletedProduct();
+    }
 
-        /*setupDeleteButtons();
-        setupUpdateButtons();*/
+    function restoreDeletedProduct() {
+        document.querySelectorAll(".restore-button").forEach((e) => {
+            e.addEventListener("click", async (evt) => {
+                await fetch(`/undo-delete-product?id=${evt.target.dataset.productId}`, {
+                    method: "POST"
+                });
+
+                await fetchDeletedProducts();
+            });
+        })
     }
 
     document.addEventListener("DOMContentLoaded", async () => {

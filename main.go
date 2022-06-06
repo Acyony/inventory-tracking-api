@@ -133,6 +133,9 @@ func main() {
 		panic(fmt.Sprintf("Not able to create a table %s", err.Error()))
 	}
 
+	http.Handle("/assets/",
+		http.StripPrefix("/assets/", http.FileServer(http.Dir("assets"))))
+
 	// -----==^.^==----- Creates a new product ------==^.^==------
 	http.HandleFunc("/new-product", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
