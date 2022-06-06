@@ -1,4 +1,4 @@
-# inventory-tracking-api
+# Inventory-Tracking-API
 A very basic inventory application with web api for a logistics company.
 
 ## Building and Running
